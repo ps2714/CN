@@ -1,0 +1,105 @@
+#TCP-client-hi
+import socket
+
+HOST = '127.0.0.1'  # The server's hostname or IP address
+PORT = 3333  # The port used by the server
+
+with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+    s.connect((HOST, PORT))  # Connect to the server
+    while True:
+        message = input("Enter your message: ")  # Get user input
+        s.sendall(message.encode())  # Send the message to the server
+
+        if message == 'stop':  # Break if 'stop' message is sent
+            print("Stopping the client...")
+            break
+
+        data = s.recv(1024).decode()  # Receive data from the server
+        print('Server says:', data)  # Print the server's response
+
+
+---------------------------------------------------
+#TCP-server-hi
+import socket
+
+HOST = '127.0.0.1'  # Standard loopback interface address (localhost)
+PORT = 3333  # Port to listen on (non-privileged ports are > 1023)
+
+with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+    s.bind((HOST, PORT))
+    s.listen()
+    print(f"Server listening on {HOST}:{PORT}")
+
+    conn, addr = s.accept()  # Accept a connection
+    with conn:  # Manage connection lifecycle
+        print('Connected by', addr)
+        while True:
+            data = conn.recv(1024).decode()  # Receive data from client
+            print('Client says:', data)
+
+            if data == 'stop':  # Break the loop if the client says 'stop'
+                print("Stopping the server...")
+                break
+
+            str2 = input("Enter your message: ")  # Get input from server operator
+            conn.sendall(str2.encode())  # Send response to client
+---------------------------------------------------
+#TCP-client-file
+import socket
+
+host = "127.0.0.1"
+port = 12000
+buffer_size = 1024
+file_name = 'Myfile2.txt'
+
+# Create a TCP socket
+sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+try:
+    # Connect to the server
+    sock.connect((host, port))
+
+    # Open and read the file in chunks
+    with open(file_name, "rb") as f:  # Open in binary mode
+        data = f.read(buffer_size)
+        while data:
+            sock.send(data)  # Send the file data to the server
+            data = f.read(buffer_size)  # Read the next chunk
+
+        # Send a termination message to signal the end of file transfer
+        sock.send(b"EOF")  # Use a specific byte string to mark end of file
+finally:
+    # Close the socket
+    sock.close()
+------------------------------------------------
+#TCP-server-file
+import socket
+
+host = "127.0.0.1"
+port = 12000
+buffer_size = 1024
+
+# Create a TCP socket
+sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+sock.bind((host, port))
+sock.listen(1)  # Listen for a connection
+
+print("Server is listening for incoming connections...")
+
+while True:
+    conn, addr = sock.accept()  # Accept a new connection
+    print(f"Connected by {addr}")
+
+    with conn, open("ReceivedFile.txt", "wb") as f:  # Open file in binary write mode
+        while True:
+            data = conn.recv(buffer_size)
+            if not data or data == b"EOF":  # Check for end of file
+                print("End of file received.")
+                break
+            f.write(data)  # Write data to the file
+
+    print("File received and saved as ReceivedFile.txt.")
+    break  # Stop the server after one file transfer (optional)
+
+# Close the server socket
+sock.close()
